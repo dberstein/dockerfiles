@@ -5,28 +5,35 @@ IMAGES=$(addprefix $(subst :,\:,$(REGISTRY))/,$(NAMES))
 DEPENDS=.depends.mk
 MAKEFLAGS += -rR
 
-.PHONY: all clean push pull run exec check checkrebuild pull-base ci $(NAMES) $(IMAGES)
-
-all: $(NAMES)
-
 help:
 	@echo "A smart Makefile for your dockerfiles"
 	@echo ""
 	@echo "Read all Dockerfile within the current directory and generate dependendies automatically."
 	@echo ""
+	@echo "make ls               ; lists all images"
 	@echo "make all              ; build all images"
 	@echo "make nginx            ; build nginx image"
 	@echo "make push all         ; build and push all images"
 	@echo "make push nginx       ; build and push nginx image"
 	@echo "make run nginx        ; build and run nginx image (for testing)"
 	@echo "make exec nginx       ; build and start interactive shell in nginx image (for debugging)"
-	@echo "make checkrebuild all ; build and check if image has update availables (using https://github.com/philpep/duuh)
+	@echo "make checkrebuild all ; build and check if image has update availables (using https://github.com/philpep/duuh)"q
 	@echo "                        and rebuild with --no-cache is image has updates"
 	@echo "make pull-base        ; pull base images from docker hub used to bootstrap other images"
 	@echo "make ci               ; alias to make pull-base checkrebuild push all"
 	@echo ""
 	@echo "You can chain actions, typically in CI environment you want make checkrebuild push all"
 	@echo "which rebuild and push only images having updates availables."
+
+.PHONY: all ls clean push pull run exec check checkrebuild pull-base ci $(NAMES) $(IMAGES)
+
+ls:
+	@echo "$(shell tput smul)Available images$(shell tput sgr0):" \
+	&& echo $(NAMES) \
+	 | tr ' ' '\t' \
+	 | column -x
+
+all: $(NAMES)
 
 clean:
 	rm -f $(DEPENDS)
@@ -36,15 +43,15 @@ pull-base:
 	docker pull debian:buster-slim
 	# used by keycloak
 	docker pull jboss/keycloak:12.0.4
-	# imago
-	docker pull philpep/imago
+#	# imago
+#	docker pull philpep/imago
 
 ci:
 	$(MAKE) pull-base checkrebuild push all
 
 .PHONY: $(DEPENDS)
 $(DEPENDS): $(DOCKERFILES)
-	grep '^FROM \$$REGISTRY/' $(DOCKERFILES) | \
+	@grep '^FROM \$$REGISTRY/' $(DOCKERFILES) | \
 		awk -F '/Dockerfile:FROM \\$$REGISTRY/' '{ print $$1 " " $$2 }' | \
 		sed 's@[:/]@\\:@g' | awk '{ print "$(subst :,\\:,$(REGISTRY))/" $$1 ": " "$(subst :,\\:,$(REGISTRY))/" $$2 }' > $@
 
