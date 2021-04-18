@@ -5,11 +5,15 @@ IMAGES=$(addprefix $(subst :,\:,$(REGISTRY))/,$(NAMES))
 DEPENDS=.depends.mk
 MAKEFLAGS += -rR
 
+GO=$(shell command -v go)
+GOPATH_BIN=$(shell test -n "$(GO)" && $(GO) env GOPATH)/bin
+
 help:
 	@echo "A smart Makefile for your dockerfiles"
 	@echo ""
 	@echo "Read all Dockerfile within the current directory and generate dependendies automatically."
 	@echo ""
+	@echo "make duuh             ; installs tool duuh (unattended upgrades, requires "go" compiler)"
 	@echo "make ls               ; lists all images"
 	@echo "make all              ; build all images"
 	@echo "make nginx            ; build nginx image"
@@ -26,6 +30,12 @@ help:
 	@echo "which rebuild and push only images having updates availables."
 
 .PHONY: all ls clean push pull run exec check checkrebuild pull-base ci $(NAMES) $(IMAGES)
+
+duuh:
+	@test -n "$(GO)" || (>&2 echo "installation of '$@' requires 'go' command to be installed in PATH" && exit 1)
+	@$(GO) get -u github.com/philpep/duuh/... \
+	&& echo $(GOPATH_BIN)/duuh --help \
+	&& $(GOPATH_BIN)/duuh --help
 
 ls:
 	@echo "$(shell tput smul)Available images$(shell tput sgr0):" \
